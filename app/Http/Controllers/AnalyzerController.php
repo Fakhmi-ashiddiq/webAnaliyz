@@ -24,7 +24,6 @@ class AnalyzerController extends Controller
      */
     public function analyze(Request $request, WebAnalyzerService $analyzerService)
     {
-        // 1. Validasi Input (Pastikan user benar-benar memasukkan URL yang valid)
         $request->validate([
             'url' => 'required|url'
         ], [
@@ -34,27 +33,34 @@ class AnalyzerController extends Controller
 
         $url = $request->input('url');
 
-        // 2. Panggil Service untuk mengambil data dari API (Proses ini mungkin memakan waktu beberapa detik)
-        $pageSpeedData = $analyzerService->analyzePageSpeed($url);
+        // Menambah batas waktu eksekusi PHP agar tidak timeout saat menunggu 2 API Google
+        set_time_limit(120); 
+
+        // 2. Panggil API Google 2 kali (Desktop dan Mobile)
+        $desktopData = $analyzerService->analyzePageSpeed($url, 'DESKTOP');
+        $mobileData = $analyzerService->analyzePageSpeed($url, 'MOBILE');
+        
+        // Panggil VirusTotal
         $virusTotalData = $analyzerService->analyzeVirusTotal($url);
 
         // 3. Simpan hasil analisis ke Database
         $report = AnalysisReport::create([
             'url' => $url,
-            'performance_score' => $pageSpeedData ? $pageSpeedData['performance_score'] : null,
-            'seo_score' => $pageSpeedData ? $pageSpeedData['seo_score'] : null,
+            // Untuk kolom utama, kita ambil dari data Desktop sebagai acuan standar
+            'performance_score' => $desktopData ? $desktopData['performance_score'] : null,
+            'seo_score' => $desktopData ? $desktopData['seo_score'] : null,
+            
             'malicious_votes' => $virusTotalData ? $virusTotalData['malicious_votes'] : null,
             'security_status' => $virusTotalData ? $virusTotalData['security_status'] : null,
             
-            // Kita gabungkan data mentah menjadi JSON untuk riwayat log
+            // Simpan KEDUA data mentah ke JSON agar bisa kita ekstrak di View nanti
             'raw_api_data' => json_encode([
-                'pagespeed' => $pageSpeedData ? $pageSpeedData['raw_data'] : null,
+                'pagespeed_desktop' => $desktopData ? $desktopData['raw_data'] : null,
+                'pagespeed_mobile' => $mobileData ? $mobileData['raw_data'] : null,
                 'virustotal' => $virusTotalData ? $virusTotalData['raw_data'] : null,
             ])
         ]);
 
-        // 4. Arahkan ke halaman hasil (View) sambil membawa data laporan ($report)
-        // Kita juga akan membuat view 'analyzer.result' di Tahap 5
         return view('analyzer.result', compact('report'));
     }
 

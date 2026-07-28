@@ -8,26 +8,25 @@ use Illuminate\Support\Facades\Log;
 class WebAnalyzerService
 {
     /**
-     * Menganalisis Performa dan SEO menggunakan Google PageSpeed API
+     * Menganalisis menggunakan Google PageSpeed API (Mendukung Mobile & Desktop)
      */
-    public function analyzePageSpeed(string $url)
+    public function analyzePageSpeed(string $url, string $strategy = 'DESKTOP')
     {
         $apiKey = env('GOOGLE_PAGESPEED_API_KEY');
         $apiUrl = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
         try {
-            // Memanggil API Google
-            $response = Http::timeout(60)->get($apiUrl, [
+            // Memanggil API Google dengan penambahan timeout 120 detik
+            $response = Http::timeout(120)->get($apiUrl, [
                 'url' => $url,
                 'key' => $apiKey,
-                'category' => ['PERFORMANCE', 'SEO'],
-                'strategy' => 'DESKTOP' // Bisa diubah ke 'MOBILE'
+                'category' => ['PERFORMANCE', 'SEO', 'ACCESSIBILITY', 'BEST_PRACTICES'],
+                'strategy' => $strategy // <-- Menggunakan parameter dari Controller
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 
-                // Mengambil nilai skor (Google mengembalikan nilai 0.0 - 1.0, jadi kita kali 100)
                 $performanceScore = isset($data['lighthouseResult']['categories']['performance']['score']) 
                                     ? $data['lighthouseResult']['categories']['performance']['score'] * 100 : 0;
                 
@@ -42,7 +41,7 @@ class WebAnalyzerService
             }
             return null;
         } catch (\Exception $e) {
-            Log::error("Google API Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Google API Error ({$strategy}): " . $e->getMessage());
             return null;
         }
     }
