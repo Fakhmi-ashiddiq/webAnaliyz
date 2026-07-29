@@ -25,38 +25,30 @@ class AnalyzerController extends Controller
     public function analyze(Request $request, WebAnalyzerService $analyzerService)
     {
         $request->validate([
-            'url' => 'required|url'
-        ], [
-            'url.required' => 'URL website wajib diisi.',
-            'url.url' => 'Format URL tidak valid (harus menggunakan http:// atau https://).'
+            'url' => 'required|url',
+            'strategy' => 'required|in:DESKTOP,MOBILE'
         ]);
 
         $url = $request->input('url');
+        $strategy = $request->input('strategy');
 
-        // Menambah batas waktu eksekusi PHP agar tidak timeout saat menunggu 2 API Google
-        set_time_limit(120); 
+        set_time_limit(60); 
 
-        // 2. Panggil API Google 2 kali (Desktop dan Mobile)
-        $desktopData = $analyzerService->analyzePageSpeed($url, 'DESKTOP');
-        $mobileData = $analyzerService->analyzePageSpeed($url, 'MOBILE');
-        
-        // Panggil VirusTotal
+        // Panggil API Google HANYA SEKALI sesuai pilihan user
+        $pageSpeedData = $analyzerService->analyzePageSpeed($url, $strategy);
         $virusTotalData = $analyzerService->analyzeVirusTotal($url);
 
-        // 3. Simpan hasil analisis ke Database
         $report = AnalysisReport::create([
             'url' => $url,
-            // Untuk kolom utama, kita ambil dari data Desktop sebagai acuan standar
-            'performance_score' => $desktopData ? $desktopData['performance_score'] : null,
-            'seo_score' => $desktopData ? $desktopData['seo_score'] : null,
-            
+            'performance_score' => $pageSpeedData ? $pageSpeedData['performance_score'] : null,
+            'seo_score' => $pageSpeedData ? $pageSpeedData['seo_score'] : null,
             'malicious_votes' => $virusTotalData ? $virusTotalData['malicious_votes'] : null,
             'security_status' => $virusTotalData ? $virusTotalData['security_status'] : null,
             
-            // Simpan KEDUA data mentah ke JSON agar bisa kita ekstrak di View nanti
+            // Simpan data mentahnya sesuai strategi yang dipilih
             'raw_api_data' => json_encode([
-                'pagespeed_desktop' => $desktopData ? $desktopData['raw_data'] : null,
-                'pagespeed_mobile' => $mobileData ? $mobileData['raw_data'] : null,
+                'strategy' => $strategy,
+                'pagespeed' => $pageSpeedData ? $pageSpeedData['raw_data'] : null,
                 'virustotal' => $virusTotalData ? $virusTotalData['raw_data'] : null,
             ])
         ]);

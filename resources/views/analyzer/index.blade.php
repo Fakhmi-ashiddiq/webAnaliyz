@@ -31,6 +31,14 @@
                             @csrf <!-- Wajib ada di Laravel untuk keamanan form (Mencegah serangan CSRF) -->
                             
                             <div class="mb-3">
+                                <label for="strategy" class="form-label">Pilih Perangkat (Device):</label>
+                                <select class="form-select form-select-lg" id="strategy" name="strategy">
+                                    <option value="DESKTOP">Desktop</option>
+                                    <option value="MOBILE">Mobile</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="url" class="form-label">Masukkan URL Website:</label>
                                 <input type="url" class="form-control form-control-lg" id="url" name="url" placeholder="https://contoh.com" required>
                                 <div class="form-text">Pastikan menggunakan http:// atau https://</div>
