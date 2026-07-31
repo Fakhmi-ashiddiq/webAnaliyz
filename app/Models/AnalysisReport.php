@@ -17,5 +17,6 @@ class AnalysisReport extends Model
         'malicious_votes',
         'security_status',
         'raw_api_data',
+        'status',
     ];
 }

@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'google_pagespeed' => [
+        'key' => env('GOOGLE_PAGESPEED_API_KEY'),
+    ],
+
+    'virustotal' => [
+        'key' => env('VIRUSTOTAL_API_KEY'),
+    ],
+
 ];

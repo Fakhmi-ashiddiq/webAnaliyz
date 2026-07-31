@@ -15,12 +15,12 @@ class AnalyzerController extends Controller
      */
     public function index()
     {
-        // Kita akan membuat view 'analyzer.index' di Tahap 5 nanti
-        return view('analyzer.index'); 
+        return view('analyzer.index');
     }
 
     /**
-     * Memproses URL, memanggil API, dan menyimpan ke Database
+     * Memproses URL: hanya cek VirusTotal di server (cepat), lalu halaman
+     * "processing" yang menjalankan Google PageSpeed langsung dari browser.
      */
     public function analyze(Request $request, WebAnalyzerService $analyzerService)
     {
@@ -32,28 +32,83 @@ class AnalyzerController extends Controller
         $url = $request->input('url');
         $strategy = $request->input('strategy');
 
-        set_time_limit(60); 
-
-        // Panggil API Google HANYA SEKALI sesuai pilihan user
-        $pageSpeedData = $analyzerService->analyzePageSpeed($url, $strategy);
         $virusTotalData = $analyzerService->analyzeVirusTotal($url);
 
         $report = AnalysisReport::create([
             'url' => $url,
-            'performance_score' => $pageSpeedData ? $pageSpeedData['performance_score'] : null,
-            'seo_score' => $pageSpeedData ? $pageSpeedData['seo_score'] : null,
+            'status' => 'pending',
             'malicious_votes' => $virusTotalData ? $virusTotalData['malicious_votes'] : null,
             'security_status' => $virusTotalData ? $virusTotalData['security_status'] : null,
-            
-            // Simpan data mentahnya sesuai strategi yang dipilih
             'raw_api_data' => json_encode([
                 'strategy' => $strategy,
-                'pagespeed' => $pageSpeedData ? $pageSpeedData['raw_data'] : null,
+                'pagespeed' => null,
                 'virustotal' => $virusTotalData ? $virusTotalData['raw_data'] : null,
-            ])
+            ]),
         ]);
 
+        return view('analyzer.processing', compact('report'));
+    }
+
+    /**
+     * Menampilkan hasil laporan (hanya bila sudah selesai diproses)
+     */
+    public function show($id)
+    {
+        $report = AnalysisReport::findOrFail($id);
+
+        if ($report->status !== 'completed') {
+            return view('analyzer.processing', compact('report'));
+        }
+
         return view('analyzer.result', compact('report'));
+    }
+
+    /**
+     * Endpoint status laporan untuk polling AJAX.
+     */
+    public function status($id)
+    {
+        $report = AnalysisReport::findOrFail($id);
+
+        return response()->json([
+            'id' => $report->id,
+            'status' => $report->status,
+        ]);
+    }
+
+    /**
+     * Menyimpan hasil Google PageSpeed yang dikirim oleh browser.
+     */
+    public function storePageSpeed($id, Request $request, WebAnalyzerService $analyzerService)
+    {
+        $report = AnalysisReport::findOrFail($id);
+
+        if ($report->status === 'completed') {
+            return response()->json(['ok' => true]);
+        }
+
+        $request->validate([
+            'pagespeed' => 'required|array',
+        ]);
+
+        $data = $request->input('pagespeed');
+
+        $scores = $analyzerService->parsePageSpeedData($data);
+
+        $raw = json_decode($report->raw_api_data, true) ?? [];
+
+        $report->update([
+            'performance_score' => $scores['performance_score'],
+            'seo_score' => $scores['seo_score'],
+            'raw_api_data' => json_encode([
+                'strategy' => $raw['strategy'] ?? 'DESKTOP',
+                'pagespeed' => $data,
+                'virustotal' => $raw['virustotal'] ?? null,
+            ]),
+            'status' => 'completed',
+        ]);
+
+        return response()->json(['ok' => true]);
     }
 
     /**
@@ -61,16 +116,16 @@ class AnalyzerController extends Controller
      */
     public function exportPdf($id)
     {
-        // Cari data laporan berdasarkan ID, jika tidak ada (404), batalkan.
         $report = AnalysisReport::findOrFail($id);
 
-        // Load tampilan khusus PDF (kita buat di langkah 4) dan kirim datanya
+        if ($report->status !== 'completed') {
+            abort(409, 'Laporan belum selesai diproses.');
+        }
+
         $pdf = Pdf::loadView('analyzer.pdf', compact('report'));
 
-        // Atur ukuran kertas dan orientasi (opsional, defaultnya A4 portrait)
         $pdf->setPaper('A4', 'portrait');
 
-        // Kembalikan sebagai file yang langsung ter-download
         return $pdf->download('Laporan-Analisis-' . $report->id . '.pdf');
     }
 }
