@@ -53,6 +53,15 @@ class AnalyzerController extends Controller
             ])
         ]);
 
+        return redirect()->route('analyzer.result', $report->id);
+    }
+
+    /**
+     * Menampilkan hasil analisis berdasarkan ID (Mencegah error saat refresh)
+     */
+    public function result($id)
+    {
+        $report = AnalysisReport::findOrFail($id);
         return view('analyzer.result', compact('report'));
     }
 

@@ -16,13 +16,14 @@ class WebAnalyzerService
         $apiUrl = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
         try {
-            // Memanggil API Google dengan penambahan timeout 120 detik
-            $response = Http::timeout(120)->get($apiUrl, [
+            $queryString = http_build_query([
                 'url' => $url,
                 'key' => $apiKey,
-                'category' => ['PERFORMANCE', 'SEO', 'ACCESSIBILITY', 'BEST_PRACTICES'],
-                'strategy' => $strategy // <-- Menggunakan parameter dari Controller
-            ]);
+                'strategy' => $strategy
+            ]) . '&category=PERFORMANCE&category=SEO&category=ACCESSIBILITY&category=BEST_PRACTICES';
+
+            // Memanggil API Google dengan penambahan timeout 120 detik
+            $response = Http::timeout(120)->get($apiUrl . '?' . $queryString);
 
             if ($response->successful()) {
                 $data = $response->json();

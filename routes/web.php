@@ -24,5 +24,8 @@ Route::get('/', [AnalyzerController::class, 'index'])->name('analyzer.index');
 // Rute untuk memproses analisis ketika form di-submit (Method POST)
 Route::post('/analyze', [AnalyzerController::class, 'analyze'])->name('analyzer.process');
 
+// Rute untuk menampilkan hasil analisis (Method GET)
+Route::get('/result/{id}', [AnalyzerController::class, 'result'])->name('analyzer.result');
+
 // Rute untuk download PDF
 Route::get('/analyze/{id}/pdf', [AnalyzerController::class, 'exportPdf'])->name('analyzer.pdf');
