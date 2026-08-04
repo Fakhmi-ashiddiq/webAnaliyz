@@ -2,7 +2,7 @@
     <div class="pm-header">
         <div>
             <h3 class="section-title">Performance Metrics</h3>
-            <p class="section-desc">The following metrics are generated using Lighthouse Performance data.</p>
+            <p class="section-desc">The following metrics are generated using our advanced Analysis Engine.</p>
         </div>
         <div class="pm-toggle-wrap">
             <span class="pm-toggle-label">Metric details</span>

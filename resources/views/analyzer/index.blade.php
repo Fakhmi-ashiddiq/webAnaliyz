@@ -302,15 +302,55 @@
             margin-left: 20px;
             margin-top: 5px;
         }
+
+        .auth-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
     </style>
 </head>
 <body>
+    @auth
+    <div class="auth-nav">
+        <form action="{{ route('logout') }}" method="POST" style="margin:0;">
+            @csrf
+            <button type="submit" class="btn-logout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Logout
+            </button>
+        </form>
+    </div>
+    @endauth
+
     <div class="bg-glow"></div>
     <div class="bg-glow-2"></div>
 
     <div class="container">
         <h1 class="hero-title">Web Analyzer</h1>
-        <p class="hero-subtitle">Deep dive into performance, Lighthouse scores, and GTmetrix-grade insights.</p>
+        <p class="hero-subtitle">Deep dive into performance, security scores, and advanced grade insights.</p>
 
         <div class="analyzer-card">
             @if($errors->any())
@@ -356,7 +396,7 @@
     <!-- Fullscreen Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loader-ring"></div>
-        <div class="loading-text" id="loadingText">Connecting to Lighthouse & GTmetrix...</div>
+        <div class="loading-text" id="loadingText">Connecting to Analysis Engine...</div>
         <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px; max-width: 400px; text-align: center;">
             This deep analysis typically takes 15-45 seconds depending on the target website's complexity.
         </div>
@@ -388,9 +428,9 @@
             const loadText = document.getElementById('loadingText');
             
             const loadingMessages = [
-                "Running Lighthouse Audits...",
+                "Running Performance Audits...",
                 "Fetching Core Web Vitals (CrUX)...",
-                "Calculating GTmetrix Grades...",
+                "Calculating Grade Insights...",
                 "Gathering Browser Timings...",
                 "Analyzing Agentic Browsing capability...",
                 "Almost there..."
