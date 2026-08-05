@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Web Analyzer - Premium Performance Audit</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
@@ -364,6 +365,8 @@
                 </div>
             @endif
 
+            <div class="error-box" id="jsErrorBox" style="display:none;"></div>
+
             <form action="{{ route('analyzer.process') }}" method="POST" id="analyzeForm">
                 @csrf
                 
@@ -426,7 +429,7 @@
             const form = document.getElementById('analyzeForm');
             const overlay = document.getElementById('loadingOverlay');
             const loadText = document.getElementById('loadingText');
-            
+
             const loadingMessages = [
                 "Running Performance Audits...",
                 "Fetching Core Web Vitals (CrUX)...",
@@ -436,16 +439,85 @@
                 "Almost there..."
             ];
 
-            form.addEventListener('submit', () => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            const apiKey = @json(config('services.google_pagespeed.key'));
+
+            function showError(msg) {
+                const box = document.getElementById('jsErrorBox');
+                box.textContent = msg;
+                box.style.display = 'block';
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
                 overlay.classList.add('active');
-                
+                document.getElementById('jsErrorBox').style.display = 'none';
+
                 let msgIdx = 0;
-                setInterval(() => {
+                const msgTimer = setInterval(() => {
                     if (msgIdx < loadingMessages.length) {
                         loadText.textContent = loadingMessages[msgIdx];
                         msgIdx++;
                     }
                 }, 4000);
+
+                const url = document.getElementById('url').value.trim();
+                const strategy = hiddenInput.value;
+
+                try {
+                    const createRes = await fetch('{{ route('analyzer.process') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ url, strategy }),
+                    });
+
+                    if (!createRes.ok) {
+                        throw new Error('Gagal membuat laporan. Periksa URL dan coba lagi.');
+                    }
+
+                    const { report_id } = await createRes.json();
+
+                    const params = new URLSearchParams();
+                    params.set('url', url);
+                    if (apiKey) params.set('key', apiKey);
+                    params.set('strategy', strategy);
+                    ['PERFORMANCE', 'SEO', 'ACCESSIBILITY', 'BEST_PRACTICES'].forEach(c => params.append('category', c));
+
+                    const googleRes = await fetch('https://www.googleapis.com/pagespeedonline/v5/runPagespeed?' + params.toString());
+
+                    if (!googleRes.ok) {
+                        const err = await googleRes.json().catch(() => ({}));
+                        const detail = (err.error && err.error.message) || ('HTTP ' + googleRes.status);
+                        throw new Error('Google PageSpeed: ' + detail);
+                    }
+
+                    const pagespeed = await googleRes.json();
+
+                    const saveRes = await fetch('{{ route('analyzer.store', ['id' => '__ID__']) }}'.replace('__ID__', report_id), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ pagespeed }),
+                    });
+
+                    if (!saveRes.ok) {
+                        throw new Error('Gagal menyimpan hasil analisis.');
+                    }
+
+                    clearInterval(msgTimer);
+                    window.location.href = '{{ route('analyzer.result', ['id' => '__ID__']) }}'.replace('__ID__', report_id);
+                } catch (e) {
+                    clearInterval(msgTimer);
+                    overlay.classList.remove('active');
+                    showError(e.message || 'Terjadi kesalahan. Silakan coba lagi.');
+                }
             });
         });
     </script>

@@ -12,7 +12,7 @@ class WebAnalyzerService
      */
     public function analyzePageSpeed(string $url, string $strategy = 'DESKTOP')
     {
-        $apiKey = env('GOOGLE_PAGESPEED_API_KEY');
+        $apiKey = config('services.google_pagespeed.key');
         $apiUrl = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed";
 
         try {
@@ -60,7 +60,12 @@ class WebAnalyzerService
         try {
             $response = Http::withHeaders([
                 'x-apikey' => $apiKey,
-            ])->timeout(30)->get("https://www.virustotal.com/api/v3/urls/{$urlId}");
+            ])->timeout(20)->get("https://www.virustotal.com/api/v3/urls/{$urlId}");
+
+            // Jika URL belum pernah dipindai (404), submit dulu lalu ambil hasilnya.
+            if ($response->status() === 404) {
+                return $this->submitAndWaitForUrl($url, $apiKey);
+            }
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -80,6 +85,52 @@ class WebAnalyzerService
             Log::error("VirusTotal API Error: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Men-submit URL baru ke VirusTotal lalu menunggu hasil analisisnya.
+     */
+    private function submitAndWaitForUrl(string $url, string $apiKey)
+    {
+        $submit = Http::asForm()->withHeaders([
+            'x-apikey' => $apiKey,
+        ])->timeout(20)->post("https://www.virustotal.com/api/v3/urls", [
+            'url' => $url,
+        ]);
+
+        if (!$submit->successful()) {
+            return null;
+        }
+
+        $analysisId = $submit->json('data.id');
+
+        if (!$analysisId) {
+            return null;
+        }
+
+        // Tunggu hasil analisis (maksimal ~4x2 detik agar tetap dalam batas waktu request)
+        for ($i = 0; $i < 4; $i++) {
+            sleep(2);
+
+            $report = Http::withHeaders([
+                'x-apikey' => $apiKey,
+            ])->timeout(20)->get("https://www.virustotal.com/api/v3/analyses/{$analysisId}");
+
+            if ($report->successful()) {
+                $data = $report->json();
+
+                $maliciousVotes = $data['data']['attributes']['stats']['malicious'] ?? 0;
+                $securityStatus = $maliciousVotes > 0 ? 'Malicious/Bahaya' : 'Safe/Aman';
+
+                return [
+                    'malicious_votes' => $maliciousVotes,
+                    'security_status' => $securityStatus,
+                    'raw_data' => $data,
+                ];
+            }
+        }
+
+        return null;
     }
 
     /**

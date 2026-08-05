@@ -20,14 +20,12 @@ class AnalyzerController extends Controller
     }
 
     /**
-     * Memproses URL, memanggil API, dan menyimpan ke Database
+     * Memproses URL: simpan laporan (status pending) lalu kembalikan id-nya.
+     * Google PageSpeed dipanggil dari browser (tanpa beban timeout server),
+     * lalu hasilnya dikirim kembali ke server lewat metode store().
      */
-    public function analyze(Request $request, WebAnalyzerService $analyzerService)
+    public function analyze(Request $request)
     {
-        // Hindari timeout pada website berat seperti Tokopedia
-        ini_set('max_execution_time', 300);
-        set_time_limit(300);
-
         $request->validate([
             'url' => 'required|url',
             'strategy' => 'required|in:DESKTOP,MOBILE'
@@ -36,35 +34,58 @@ class AnalyzerController extends Controller
         $url = $request->input('url');
         $strategy = $request->input('strategy');
 
-        // Tambahkan fallback timeout yang aman jika API terlalu lama
+        $report = AnalysisReport::create([
+            'url' => $url,
+            'status' => 'pending',
+            'raw_api_data' => json_encode(['strategy' => $strategy]),
+        ]);
+
+        return response()->json(['report_id' => $report->id]);
+    }
+
+    /**
+     * Menerima hasil Google PageSpeed dari browser, memanggil VirusTotal
+     * (cepat), lalu menyimpan laporan final.
+     */
+    public function store(Request $request, $id, WebAnalyzerService $analyzerService)
+    {
+        $report = AnalysisReport::findOrFail($id);
+
+        $request->validate([
+            'pagespeed' => 'required|array',
+        ]);
+
+        $pageSpeedData = $request->input('pagespeed');
+        $strategy = json_decode($report->raw_api_data, true)['strategy'] ?? 'DESKTOP';
+
+        $performanceScore = isset($pageSpeedData['lighthouseResult']['categories']['performance']['score'])
+                            ? round($pageSpeedData['lighthouseResult']['categories']['performance']['score'] * 100) : null;
+
+        $seoScore = isset($pageSpeedData['lighthouseResult']['categories']['seo']['score'])
+                    ? round($pageSpeedData['lighthouseResult']['categories']['seo']['score'] * 100) : null;
+
+        $virusTotalData = null;
         try {
-            $pageSpeedData = $analyzerService->analyzePageSpeed($url, $strategy);
-        } catch (\Exception $e) {
-            return back()->withErrors(['url' => 'Website ini terlalu kompleks untuk dianalisis oleh server kami (Timeout). Silakan coba web lain.']);
-        }
-        
-        try {
-            $virusTotalData = $analyzerService->analyzeVirusTotal($url);
+            $virusTotalData = $analyzerService->analyzeVirusTotal($report->url);
         } catch (\Exception $e) {
             $virusTotalData = null;
         }
 
-        $report = AnalysisReport::create([
-            'url' => $url,
-            'performance_score' => $pageSpeedData ? $pageSpeedData['performance_score'] : null,
-            'seo_score' => $pageSpeedData ? $pageSpeedData['seo_score'] : null,
-            'malicious_votes' => $virusTotalData ? $virusTotalData['malicious_votes'] : null,
-            'security_status' => $virusTotalData ? $virusTotalData['security_status'] : null,
-            
-            // Simpan data mentahnya sesuai strategi yang dipilih
-            'raw_api_data' => json_encode([
-                'strategy' => $strategy,
-                'pagespeed' => $pageSpeedData ? $pageSpeedData['raw_data'] : null,
-                'virustotal' => $virusTotalData ? $virusTotalData['raw_data'] : null,
-            ])
+        $report->performance_score = $performanceScore;
+        $report->seo_score = $seoScore;
+        $report->malicious_votes = $virusTotalData['malicious_votes'] ?? null;
+        $report->security_status = $virusTotalData['security_status'] ?? null;
+
+        $report->raw_api_data = json_encode([
+            'strategy' => $strategy,
+            'pagespeed' => $pageSpeedData,
+            'virustotal' => $virusTotalData['raw_data'] ?? null,
         ]);
 
-        return redirect()->route('analyzer.result', $report->id);
+        $report->status = 'completed';
+        $report->save();
+
+        return response()->json(['ok' => true, 'result_url' => route('analyzer.result', $report->id)]);
     }
 
     /**
@@ -73,6 +94,10 @@ class AnalyzerController extends Controller
     public function result($id)
     {
         $report = AnalysisReport::findOrFail($id);
+
+        if ($report->status !== 'completed') {
+            return redirect()->route('analyzer.index');
+        }
         
         // Resolve Target IP Address directly via DNS Ping for UI
         $parsed_url = parse_url($report->url);
@@ -230,7 +255,7 @@ class AnalyzerController extends Controller
         $report = AnalysisReport::findOrFail($id);
 
         if ($report->status !== 'completed') {
-            return redirect()->route('analyzer.processing', $report->id);
+            return redirect()->route('analyzer.index');
         }
 
         $data = $this->prepareReportData($report);
@@ -251,7 +276,7 @@ class AnalyzerController extends Controller
         $report = AnalysisReport::findOrFail($id);
 
         if ($report->status !== 'completed') {
-            return redirect()->route('analyzer.processing', $report->id);
+            return redirect()->route('analyzer.index');
         }
 
         $data = $this->prepareReportData($report);

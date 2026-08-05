@@ -11,6 +11,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware(['auth'])->group(function () {
     Route::get('/', [AnalyzerController::class, 'index'])->name('analyzer.index');
     Route::post('/analyze', [AnalyzerController::class, 'analyze'])->name('analyzer.process');
+    Route::post('/analyze/{id}/store', [AnalyzerController::class, 'store'])->name('analyzer.store');
     Route::get('/analyze/{id}', [AnalyzerController::class, 'result'])->name('analyzer.result');
     Route::get('/analyze/{id}/export/pdf', [AnalyzerController::class, 'exportPdf'])->name('analyzer.export');
     Route::get('/analyze/{id}/export/word', [AnalyzerController::class, 'exportWord'])->name('analyzer.exportWord');
