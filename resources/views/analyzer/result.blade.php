@@ -660,22 +660,6 @@
                 data = JSON.parse(rawJson);
                 if(data && data.pagespeed && data.pagespeed.lighthouseResult) {
                     document.getElementById('app-content').style.display = 'block';
-
-                    // Screenshot
-                    if (data.screenshot_url) {
-                        const shotWrap = document.getElementById('vt-shot-wrap');
-                        const shotImg = document.getElementById('vt-shot-img');
-                        const shotLink = document.getElementById('vt-shot-link');
-                        shotImg.src = '{{ url('screenshot') }}/' + data.screenshot_url;
-                        shotLink.href = shotImg.src;
-                        shotImg.style.display = 'block';
-                        shotWrap.style.display = 'block';
-                    } else {
-                        const shotWrap = document.getElementById('vt-shot-wrap');
-                        const shotEmpty = document.getElementById('vt-shot-empty');
-                        shotEmpty.style.display = 'flex';
-                        shotWrap.style.display = 'block';
-                    }
                     initDashboard(data);
                 } else {
                     let errMsg = "Data dari Google Lighthouse (PageSpeed API) kosong atau gagal diakses. Situs target mungkin menolak pemindaian atau terlalu lambat.";

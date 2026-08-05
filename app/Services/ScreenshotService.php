@@ -45,68 +45,72 @@ class ScreenshotService
                 return null;
             }
 
-            $absolutePath = Storage::disk('public')->path($relativePath);
-
             if (Storage::disk('public')->exists($relativePath)) {
                 Storage::disk('public')->delete($relativePath);
             }
 
-            if ($provider === 'external') {
-                return $this->captureFromExternalService(
-                    $url,
-                    $relativePath
-                )
+            $canBrowsershot = config('services.browsershot.enabled')
+                && $this->nodeAvailable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Provider: browsershot (Node.js + Chromium lokal)
+            |--------------------------------------------------------------------------
+            | Jika diminta, aktif, dan Node tersedia, coba tangkap lewat Chrome.
+            | Apabila gagal (Chrome diblokir situs, timeout, dll.) otomatis
+            | dilanjutkan ke layanan external agar screenshot tetap muncul.
+            |
+            */
+            if ($provider === 'browsershot' && $canBrowsershot) {
+                try {
+                    if ($this->captureFromBrowsershot($url, $relativePath)) {
+                        return $relativePath;
+                    }
+                } catch (Throwable $exception) {
+                    Log::warning('Browsershot gagal, dicoba layanan screenshot external.', [
+                        'url' => $url,
+                        'message' => $exception->getMessage(),
+                        'exception' => get_class($exception),
+                    ]);
+                }
+
+                $this->forgetPartialScreenshot($relativePath);
+
+                return $this->captureFromExternalService($url, $relativePath)
                     ? $relativePath
                     : null;
             }
 
-            if (! config('services.browsershot.enabled')) {
-                Log::info('Screenshot dimatikan lewat BROWSERSHOT_ENABLED.', [
+            /*
+            |--------------------------------------------------------------------------
+            | Provider: external (tanpa Node, cocok untuk shared hosting)
+            |--------------------------------------------------------------------------
+            */
+            if ($provider === 'external') {
+                return $this->captureFromExternalService($url, $relativePath)
+                    ? $relativePath
+                    : null;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Provider browsershot tetapi Node tidak tersedia / nonaktif
+            |--------------------------------------------------------------------------
+            | Fallback otomatis ke layanan external agar screenshot tetap muncul
+            | di lingkungan yang tidak bisa menjalankan Node.js (shared hosting).
+            |
+            */
+            if ($provider === 'browsershot') {
+                Log::info('Node.js tidak tersedia atau browsershot nonaktif, fallback ke layanan external.', [
                     'url' => $url,
                 ]);
 
-                return null;
+                return $this->captureFromExternalService($url, $relativePath)
+                    ? $relativePath
+                    : null;
             }
 
-            if (! $this->nodeAvailable()) {
-                Log::info('Node.js tidak tersedia, screenshot dilewati.', [
-                    'url' => $url,
-                ]);
-
-                return null;
-            }
-
-            $browsershot = Browsershot::url($url)
-                ->windowSize(1366, 768)
-                ->setOption('waitUntil', 'load')
-                ->setDelay(2000)
-                ->timeout((int) config('services.browsershot.timeout'))
-                ->noSandbox();
-
-            if ($nodePath = config('services.browsershot.node_path')) {
-                $browsershot->setNodeBinary($nodePath);
-            }
-
-            if ($npmPath = config('services.browsershot.npm_path')) {
-                $browsershot->setNpmBinary($npmPath);
-            }
-
-            if ($chromePath = config('services.browsershot.chrome_path')) {
-                $browsershot->setChromePath($chromePath);
-            }
-
-            $browsershot->save($absolutePath);
-
-            if (! Storage::disk('public')->exists($relativePath)) {
-                Log::error('Screenshot selesai diproses tetapi file tidak ditemukan.', [
-                    'url' => $url,
-                    'path' => $absolutePath,
-                ]);
-
-                return null;
-            }
-
-            return $relativePath;
+            return null;
         } catch (Throwable $exception) {
             Log::error('Screenshot gagal dibuat.', [
                 'url' => $url,
@@ -117,6 +121,52 @@ class ScreenshotService
             ]);
 
             return null;
+        }
+    }
+
+    private function captureFromBrowsershot(
+        string $url,
+        string $relativePath
+    ): bool {
+        $absolutePath = Storage::disk('public')->path($relativePath);
+
+        $browsershot = Browsershot::url($url)
+            ->windowSize(1366, 768)
+            ->setOption('waitUntil', 'load')
+            ->setDelay(2000)
+            ->timeout((int) config('services.browsershot.timeout'))
+            ->noSandbox();
+
+        if ($nodePath = config('services.browsershot.node_path')) {
+            $browsershot->setNodeBinary($nodePath);
+        }
+
+        if ($npmPath = config('services.browsershot.npm_path')) {
+            $browsershot->setNpmBinary($npmPath);
+        }
+
+        if ($chromePath = config('services.browsershot.chrome_path')) {
+            $browsershot->setChromePath($chromePath);
+        }
+
+        $browsershot->save($absolutePath);
+
+        if (! Storage::disk('public')->exists($relativePath)) {
+            Log::error('Screenshot selesai diproses tetapi file tidak ditemukan.', [
+                'url' => $url,
+                'path' => $absolutePath,
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function forgetPartialScreenshot(string $relativePath): void
+    {
+        if (Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
         }
     }
 
