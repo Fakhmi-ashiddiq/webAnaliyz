@@ -15,8 +15,11 @@ class AnalyzerController extends Controller
      */
     public function index()
     {
-        // Kita akan membuat view 'analyzer.index' di Tahap 5 nanti
-        return view('analyzer.index'); 
+        $reports = AnalysisReport::where('status', 'completed')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('analyzer.index', compact('reports'));
     }
 
     /**
@@ -71,6 +74,20 @@ class AnalyzerController extends Controller
             $virusTotalData = null;
         }
 
+        $httpInfo = null;
+        try {
+            $httpInfo = $analyzerService->fetchHttpInfo($report->url);
+        } catch (\Exception $e) {
+            $httpInfo = null;
+        }
+
+        $technologies = [];
+        try {
+            $technologies = $analyzerService->detectTechnologies($report->url);
+        } catch (\Exception $e) {
+            $technologies = [];
+        }
+
         $report->performance_score = $performanceScore;
         $report->seo_score = $seoScore;
         $report->malicious_votes = $virusTotalData['malicious_votes'] ?? null;
@@ -80,6 +97,8 @@ class AnalyzerController extends Controller
             'strategy' => $strategy,
             'pagespeed' => $pageSpeedData,
             'virustotal' => $virusTotalData['raw_data'] ?? null,
+            'http_info' => $httpInfo,
+            'technologies' => $technologies,
         ]);
 
         $report->status = 'completed';
@@ -192,7 +211,9 @@ class AnalyzerController extends Controller
             'status_code' => 'N/A',
             'categories' => []
         ];
-        
+
+        $httpInfo = $data['http_info'] ?? null;
+
         if (isset($data['virustotal']['data']['attributes'])) {
             $attr = $data['virustotal']['data']['attributes'];
             
@@ -214,6 +235,11 @@ class AnalyzerController extends Controller
             if (isset($attr['categories'])) {
                 $security_details['categories'] = array_values($attr['categories']);
             }
+        }
+
+        // Fallback: status code asli dari fetch HTTP langsung (data real situs target)
+        if ($security_details['status_code'] === 'N/A' && isset($httpInfo['status_code'])) {
+            $security_details['status_code'] = $httpInfo['status_code'];
         }
         
         // --- Generate Reasons ---

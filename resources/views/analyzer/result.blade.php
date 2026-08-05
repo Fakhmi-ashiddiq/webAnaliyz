@@ -657,6 +657,7 @@
             // VirusTotal Logic
             if(data.virustotal && data.virustotal.data) {
                 const attr = data.virustotal.data.attributes;
+                const httpInfo = data.http_info || {};
                 const stats = attr.last_analysis_stats || {};
                 
                 const malicious = stats.malicious || 0;
@@ -716,13 +717,14 @@
                 
                 // IP Address in Header
                 document.getElementById('vt-ip').textContent = '{{ $resolved_ip }}';
-                document.getElementById('vt-status-code').textContent = attr.last_http_response_code || 'N/A';
+                document.getElementById('vt-status-code').textContent = attr.last_http_response_code || httpInfo.status_code || 'N/A';
                 
                 let headers = attr.last_http_response_headers || {};
                 let cType = 'N/A';
                 for (const [k, v] of Object.entries(headers)) {
                     if(k.toLowerCase() === 'content-type') { cType = v; break; }
                 }
+                if(cType === 'N/A' && httpInfo.content_type) { cType = httpInfo.content_type; }
                 document.getElementById('vt-content-type').textContent = cType;
                 
                 const tagsContainer = document.getElementById('vt-tags');
@@ -799,6 +801,7 @@
             // URL Overview Logic
             if(data.virustotal && data.virustotal.data) {
                 const attr = data.virustotal.data.attributes;
+                const httpInfo = data.http_info || {};
                 const stats = attr.last_analysis_stats || {};
                 const malicious = stats.malicious || 0;
 
@@ -814,7 +817,7 @@
                     document.getElementById('vt-uo-domain').textContent = new URL(attr.url).hostname;
                 } catch(e) {}
                 
-                document.getElementById('vt-uo-status').textContent = attr.last_http_response_code || 'N/A';
+                document.getElementById('vt-uo-status').textContent = attr.last_http_response_code || httpInfo.status_code || 'N/A';
                 document.getElementById('vt-uo-ip').textContent = '{{ $resolved_ip }}';
                 
                 const catContainer = document.getElementById('vt-uo-category');
@@ -833,6 +836,9 @@
                     attr.tags.forEach(t => {
                         tHtml += `<span class="vt-uo-tag">${t.toLowerCase()}</span>`;
                     });
+                }
+                if(!tHtml && httpInfo.content_type && String(httpInfo.content_type).toLowerCase().includes('html')) {
+                    tHtml += `<span class="vt-uo-tag">text/html</span>`;
                 }
                 tContainer.innerHTML = tHtml || '-';
 
@@ -874,6 +880,13 @@
                 // Web Technologies
                 const techBody = document.getElementById('vt-tech-body');
                 let techList = [];
+
+                // From server-side detection (HTML + header scan)
+                if(data.technologies && data.technologies.length) {
+                    data.technologies.forEach(t => {
+                        techList.push({ name: t.name, version: t.version || '-', category: t.category || '' });
+                    });
+                }
                 
                 // From Lighthouse JS Libraries
                 if(data.pagespeed && data.pagespeed.lighthouseResult) {
