@@ -568,6 +568,28 @@
             el.outerHTML = '<svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>';
         }
 
+        // Map nama teknologi -> slug icon lokal (agar laporan lama tanpa field icon tetap dapat gambar)
+        const TECH_ICONS = {
+            'Apache': 'apache', 'Nginx': 'nginx', 'LiteSpeed': 'litespeed', 'IIS': 'microsoft-iis',
+            'Cloudflare': 'cloudflare', 'Amazon CloudFront': 'amazonwebservices', 'PHP': 'php',
+            'Express': 'express', 'Node.js': 'nodedotjs', 'Next.js': 'nextdotjs', 'ASP.NET': 'dotnet',
+            'CodeIgniter': 'codeigniter', 'Laravel': 'laravel', 'CakePHP': 'cakephp',
+            'WordPress': 'wordpress', 'Elementor': 'elementor', 'WooCommerce': 'woocommerce',
+            'Yoast SEO': 'yoast', 'Joomla': 'joomla', 'Drupal': 'drupal', 'Shopify': 'shopify',
+            'Magento': 'magento', 'PrestaShop': 'prestashop', 'Wix': 'wix',
+            'jQuery': 'jquery', 'Bootstrap': 'bootstrap', 'React': 'react', 'Vue.js': 'vuedotjs',
+            'Angular': 'angular', 'Alpine.js': 'alpinejs', 'htmx': 'htmx', 'GSAP': 'gsap',
+            'Chart.js': 'chartdotjs', 'Select2': 'select2', 'SweetAlert2': 'sweetalert2',
+            'TinyMCE': 'tinymce', 'CKEditor': 'ckeditor', 'Axios': 'axios', 'Moment.js': 'moment',
+            'Lodash': 'lodash', 'Slick Carousel': 'slick', 'Owl Carousel': 'owlcarousel',
+            'Font Awesome': 'fontawesome', 'Bootstrap Icons': 'bootstrap', 'Material Icons': 'materialdesign',
+            'Google Fonts': 'googlefonts', 'Tailwind CSS': 'tailwindcss',
+            'Google Analytics': 'googleanalytics', 'Google Tag Manager': 'googletagmanager',
+            'Facebook Pixel': 'facebook', 'Hotjar': 'hotjar', 'Matomo': 'matomo',
+            'Yandex Metrika': 'yandex', 'jsDelivr': 'jsdelivr', 'cdnjs': 'cloudflare',
+            'unpkg': 'unpkg', 'Firebase': 'firebase', 'Vercel': 'vercel', 'Netlify': 'netlify'
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 data = JSON.parse(rawJson);
@@ -903,11 +925,13 @@
                 });
                 
                 const finalTechs = Object.values(uniqueTechs);
+                const iconBase = '/icons';
                 let techHtml = '';
                 if(finalTechs.length > 0) {
                     finalTechs.forEach(t => {
-                        const iconHtml = t.icon
-                            ? `<img class="tech-icon" src="https://cdn.simpleicons.org/${t.icon}/94a3b8" alt="" width="16" height="16" loading="lazy" onerror="techFallback(this)">`
+                        const iconSlug = t.icon || TECH_ICONS[t.name] || '';
+                        const iconHtml = iconSlug
+                            ? `<img class="tech-icon" src="${iconBase}/${iconSlug}.svg" alt="" width="16" height="16" loading="lazy" onerror="techFallback(this)">`
                             : `<svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`;
                         techHtml += `<tr><td><span class="tech-name-cell">${iconHtml}<span>${t.name}</span></span></td><td>${t.version}</td></tr>`;
                     });
