@@ -122,6 +122,13 @@
             font-size: 13px;
             text-align: center;
             color: var(--text-muted);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .demo-credentials:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--primary-hover);
         }
 
         .demo-credentials strong {
@@ -142,7 +149,7 @@
                 @csrf
                 <div class="form-group">
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-control" value="{{ old('email') }}" required autofocus placeholder="Masukkan email">
+                    <input type="email" id="email" name="email" class="form-control" value="{{ old('email') ?: 'admin@webanalyzer.com' }}" required autofocus placeholder="Masukkan email">
                     @error('email')
                         <span class="error-message">{{ $message }}</span>
                     @enderror
@@ -150,7 +157,7 @@
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control" required placeholder="Masukkan password">
+                    <input type="password" id="password" name="password" class="form-control" value="admin123" required placeholder="Masukkan password">
                     @error('password')
                         <span class="error-message">{{ $message }}</span>
                     @enderror
@@ -159,13 +166,20 @@
                 <button type="submit" class="btn-login">Login</button>
             </form>
 
-            <div class="demo-credentials">
-                <p style="margin: 0 0 10px 0; font-weight: 600; color: #5dade2;">Gunakan Akun Berikut:</p>
+            <div class="demo-credentials" onclick="fillDemoCredentials()" title="Klik untuk mengisi otomatis">
+                <p style="margin: 0 0 10px 0; font-weight: 600; color: #5dade2;">Gunakan Akun Berikut (klik untuk mengisi otomatis):</p>
                 Email: <strong>admin@webanalyzer.com</strong><br>
-                Password: <strong>admin123</strong>
+                Password: <strong>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</strong>
             </div>
         </div>
     </div>
+
+    <script>
+        function fillDemoCredentials() {
+            document.getElementById('email').value = 'admin@webanalyzer.com';
+            document.getElementById('password').value = 'admin123';
+        }
+    </script>
 
 </body>
 </html>
