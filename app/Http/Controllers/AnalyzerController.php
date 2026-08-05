@@ -225,7 +225,14 @@ class AnalyzerController extends Controller
      */
     public function exportPdf($id)
     {
+        \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
+
         $report = AnalysisReport::findOrFail($id);
+
+        if ($report->status !== 'completed') {
+            return redirect()->route('analyzer.processing', $report->id);
+        }
+
         $data = $this->prepareReportData($report);
 
         $pdf = Pdf::loadView('analyzer.pdf', $data);
@@ -239,7 +246,14 @@ class AnalyzerController extends Controller
      */
     public function exportWord($id)
     {
+        \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
+
         $report = AnalysisReport::findOrFail($id);
+
+        if ($report->status !== 'completed') {
+            return redirect()->route('analyzer.processing', $report->id);
+        }
+
         $data = $this->prepareReportData($report);
         
         $phpWord = new \PhpOffice\PhpWord\PhpWord();
@@ -341,12 +355,10 @@ class AnalyzerController extends Controller
         
         $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $fileName = 'WebAnalyzer-Report-' . $report->id . '.docx';
-        
-        header("Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        header("Content-Disposition: attachment; filename=\"$fileName\"");
-        header("Cache-Control: max-age=0");
-        
-        $objWriter->save("php://output");
-        exit;
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'webanalyzer') . '.docx';
+        $objWriter->save($tempPath);
+
+        return response()->download($tempPath, $fileName)->deleteFileAfterSend(true);
     }
 }
