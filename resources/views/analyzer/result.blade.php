@@ -582,6 +582,7 @@
             'Chart.js': 'chartdotjs', 'Select2': 'select2', 'SweetAlert2': 'sweetalert2',
             'TinyMCE': 'tinymce', 'CKEditor': 'ckeditor', 'Axios': 'axios', 'Moment.js': 'moment',
             'Lodash': 'lodash', 'Slick Carousel': 'slick', 'Owl Carousel': 'owlcarousel',
+            'core-js': 'corejs', 'core-js-pure': 'corejs', 'Isotope': 'isotope',
             'Font Awesome': 'fontawesome', 'Bootstrap Icons': 'bootstrap', 'Material Icons': 'materialdesign',
             'Google Fonts': 'googlefonts', 'Tailwind CSS': 'tailwindcss',
             'Google Analytics': 'googleanalytics', 'Google Tag Manager': 'googletagmanager',
@@ -589,6 +590,29 @@
             'Yandex Metrika': 'yandex', 'jsDelivr': 'jsdelivr', 'cdnjs': 'cloudflare',
             'unpkg': 'unpkg', 'Firebase': 'firebase', 'Vercel': 'vercel', 'Netlify': 'netlify'
         };
+
+        // Bersihkan nama teknologi dari sisipan versi, mis. "PHP/7.4.33" -> "PHP", "core-js-pure@3.32.2" -> "core-js-pure"
+        function cleanTechName(name) {
+            let n = String(name || '').trim();
+            n = n.replace(/([\/@])\d+(\.\d+)*.*$/i, '');
+            return n;
+        }
+
+        // Cari slug icon: cocokkan persis, lalu substring terpanjang (case-insensitive)
+        function lookupTechIcon(name) {
+            const clean = cleanTechName(name);
+            if(!clean) return '';
+            const lower = clean.toLowerCase();
+            if(TECH_ICONS[clean]) return TECH_ICONS[clean];
+            let best = '';
+            let bestLen = 0;
+            for(const [k, slug] of Object.entries(TECH_ICONS)) {
+                const kl = k.toLowerCase();
+                if(lower.includes(kl) && kl.length > bestLen) { best = slug; bestLen = kl.length; }
+                else if(kl.includes(lower) && lower.length > bestLen && clean.length > 2) { best = slug; bestLen = lower.length; }
+            }
+            return best;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -907,8 +931,16 @@
                     const headers = attr.last_http_response_headers;
                     // Check Server
                     if(headers.server) techList.push({ name: headers.server, version: '-' });
-                    // Check X-Powered-By
-                    if(headers['x-powered-by']) techList.push({ name: headers['x-powered-by'], version: '-' });
+                    // Check X-Powered-By (pisahkan nama & versi, mis. "PHP/7.4.33")
+                    if(headers['x-powered-by']) {
+                        const poweredBy = String(headers['x-powered-by']).split(';')[0].trim();
+                        const pbm = poweredBy.match(/^(.+?)\/(\d[\w.]*)$/);
+                        if(pbm) {
+                            techList.push({ name: pbm[1], version: pbm[2] });
+                        } else {
+                            techList.push({ name: poweredBy, version: '-' });
+                        }
+                    }
                     // Check Cloudflare
                     if(headers.via && headers.via.toLowerCase().includes('cloudflare') || headers['cf-ray']) {
                         techList.push({ name: 'Cloudflare', version: '-' });
@@ -929,7 +961,7 @@
                 let techHtml = '';
                 if(finalTechs.length > 0) {
                     finalTechs.forEach(t => {
-                        const iconSlug = t.icon || TECH_ICONS[t.name] || '';
+                        const iconSlug = t.icon || lookupTechIcon(t.name);
                         const iconHtml = iconSlug
                             ? `<img class="tech-icon" src="${iconBase}/${iconSlug}.svg" alt="" width="16" height="16" loading="lazy" onerror="techFallback(this)">`
                             : `<svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`;
