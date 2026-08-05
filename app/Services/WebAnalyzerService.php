@@ -410,6 +410,73 @@ class WebAnalyzerService
             $add('Netlify', '-', 'Cloud');
         }
 
+        // Map icon (slug Simple Icons) untuk tiap teknologi
+        $icons = [
+            'Apache' => 'apache',
+            'Nginx' => 'nginx',
+            'LiteSpeed' => 'litespeed',
+            'IIS' => 'microsoft-iis',
+            'Cloudflare' => 'cloudflare',
+            'Amazon CloudFront' => 'amazonwebservices',
+            'PHP' => 'php',
+            'Express' => 'express',
+            'Node.js' => 'nodedotjs',
+            'Next.js' => 'nextdotjs',
+            'ASP.NET' => 'dotnet',
+            'CodeIgniter' => 'codeigniter',
+            'Laravel' => 'laravel',
+            'CakePHP' => 'cakephp',
+            'WordPress' => 'wordpress',
+            'Elementor' => 'elementor',
+            'WooCommerce' => 'woocommerce',
+            'Yoast SEO' => 'yoast',
+            'Joomla' => 'joomla',
+            'Drupal' => 'drupal',
+            'Shopify' => 'shopify',
+            'Magento' => 'magento',
+            'PrestaShop' => 'prestashop',
+            'Wix' => 'wix',
+            'jQuery' => 'jquery',
+            'Bootstrap' => 'bootstrap',
+            'React' => 'react',
+            'Vue.js' => 'vuedotjs',
+            'Angular' => 'angular',
+            'Alpine.js' => 'alpinejs',
+            'htmx' => 'htmx',
+            'GSAP' => 'gsap',
+            'Chart.js' => 'chartdotjs',
+            'Select2' => 'select2',
+            'SweetAlert2' => 'sweetalert2',
+            'TinyMCE' => 'tinymce',
+            'CKEditor' => 'ckeditor',
+            'Axios' => 'axios',
+            'Moment.js' => 'moment',
+            'Lodash' => 'lodash',
+            'Slick Carousel' => 'slick',
+            'Owl Carousel' => 'owlcarousel',
+            'Font Awesome' => 'fontawesome',
+            'Bootstrap Icons' => 'bootstrap',
+            'Material Icons' => 'materialdesign',
+            'Google Fonts' => 'googlefonts',
+            'Tailwind CSS' => 'tailwindcss',
+            'Google Analytics' => 'googleanalytics',
+            'Google Tag Manager' => 'googletagmanager',
+            'Facebook Pixel' => 'facebook',
+            'Hotjar' => 'hotjar',
+            'Matomo' => 'matomo',
+            'Yandex Metrika' => 'yandex',
+            'jsDelivr' => 'jsdelivr',
+            'cdnjs' => 'cloudflare',
+            'unpkg' => 'unpkg',
+            'Firebase' => 'firebase',
+            'Vercel' => 'vercel',
+            'Netlify' => 'netlify',
+        ];
+
+        foreach ($detected as &$d) {
+            $d['icon'] = $icons[$d['name']] ?? '';
+        }
+
         return $detected;
     }
 

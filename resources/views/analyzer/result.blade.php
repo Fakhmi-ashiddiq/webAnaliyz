@@ -172,6 +172,8 @@
         .vt-tech-table th { text-align: left; padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-weight: 600; color: var(--text-main); }
         .vt-tech-table td { padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
         .vt-tech-table tr:last-child td { border-bottom: none; }
+        .tech-icon { width: 16px; height: 16px; vertical-align: middle; margin-right: 8px; flex-shrink: 0; }
+        .tech-name-cell { display: flex; align-items: center; }
 
         /* Crowdsourced Context */
         .vt-cs-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; margin-bottom: 30px; }
@@ -561,6 +563,11 @@
         const rawJson = @json($report->raw_api_data);
         let data = null;
 
+        // Fallback icon bila CDN Simple Icons gagal / slug tidak dikenal
+        function techFallback(el) {
+            el.outerHTML = '<svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>';
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 data = JSON.parse(rawJson);
@@ -859,7 +866,7 @@
                 // From server-side detection (HTML + header scan)
                 if(data.technologies && data.technologies.length) {
                     data.technologies.forEach(t => {
-                        techList.push({ name: t.name, version: t.version || '-', category: t.category || '' });
+                        techList.push({ name: t.name, version: t.version || '-', category: t.category || '', icon: t.icon || '' });
                     });
                 }
                 
@@ -899,7 +906,10 @@
                 let techHtml = '';
                 if(finalTechs.length > 0) {
                     finalTechs.forEach(t => {
-                        techHtml += `<tr><td>${t.name}</td><td>${t.version}</td></tr>`;
+                        const iconHtml = t.icon
+                            ? `<img class="tech-icon" src="https://cdn.simpleicons.org/${t.icon}/94a3b8" alt="" width="16" height="16" loading="lazy" onerror="techFallback(this)">`
+                            : `<svg class="tech-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`;
+                        techHtml += `<tr><td><span class="tech-name-cell">${iconHtml}<span>${t.name}</span></span></td><td>${t.version}</td></tr>`;
                     });
                 } else {
                     techHtml = `<tr><td colspan="2" style="text-align:center; color:var(--text-muted);">No technologies detected</td></tr>`;
