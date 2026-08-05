@@ -11,6 +11,20 @@
     <div class="vt-inner-content">
         <!-- Summary Tab -->
         <div id="vt-tab-summary" class="vt-tab-pane active">
+            <!-- Screenshot -->
+            <div class="vt-page-stats-card vt-shot-card">
+                <div class="vt-ps-header">Screenshot</div>
+                <div class="vt-shot-wrap" id="vt-shot-wrap" style="display:none;">
+                    <a href="#" id="vt-shot-link" target="_blank" rel="noopener">
+                        <img id="vt-shot-img" src="" alt="Website Screenshot" class="vt-shot-img" style="display:none;">
+                    </a>
+                    <div class="vt-shot-empty" id="vt-shot-empty" style="display:none;">
+                        <svg class="vt-ps-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span>Screenshot tidak tersedia</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="vt-page-stats-card">
                 <div class="vt-ps-header">Page Stats</div>
                 <div class="vt-ps-grid">

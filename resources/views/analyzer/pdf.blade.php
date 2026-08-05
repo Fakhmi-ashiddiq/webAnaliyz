@@ -67,6 +67,15 @@
         </div>
     </div>
 
+    <!-- Screenshot -->
+    {{-- @if(!empty($screenshot_url))
+        <div class="section-title">Screenshot Website</div>
+        <div style="text-align: center; margin-bottom: 15px;">
+            <img src="{{ url('screenshot/' . $screenshot_url) }}" alt="Screenshot Website" style="max-width: 100%; border: 1px solid #e0e6ed; border-radius: 4px;">
+            <div style="font-size: 9px; color: #7f8c8d; margin-top: 5px;">Gambar diambil otomatis saat analisis berjalan.</div>
+        </div>
+    @endif --}}
+
     @php
         $gradeLetter = 'N/A';
         $gradeColor = '#7f8c8d';

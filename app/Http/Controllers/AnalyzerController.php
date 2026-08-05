@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 use Illuminate\Http\Request;
 use App\Services\WebAnalyzerService;
+use App\Services\ScreenshotService;
 use App\Models\AnalysisReport;
 
 class AnalyzerController extends Controller
@@ -50,9 +51,11 @@ class AnalyzerController extends Controller
      * Menerima hasil Google PageSpeed dari browser, memanggil VirusTotal
      * (cepat), lalu menyimpan laporan final.
      */
-    public function store(Request $request, $id, WebAnalyzerService $analyzerService)
+    public function store(Request $request, $id, WebAnalyzerService $analyzerService, ScreenshotService $screenshotService)
     {
         $report = AnalysisReport::findOrFail($id);
+
+        set_time_limit(120);
 
         $request->validate([
             'pagespeed' => 'required|array',
@@ -91,6 +94,15 @@ class AnalyzerController extends Controller
             $securityHeaders = [];
         }
 
+        $screenshotUrl = null;
+        try {
+            $screenshotUrl = $screenshotService->capture(
+                $httpInfo['final_url'] ?? $report->url
+            );
+        } catch (\Exception $e) {
+            $screenshotUrl = null;
+        }
+
         $technologies = [];
         try {
             $technologies = $analyzerService->detectTechnologies($report->url);
@@ -109,6 +121,7 @@ class AnalyzerController extends Controller
             'virustotal' => $virusTotalData['raw_data'] ?? null,
             'http_info' => $httpInfo,
             'security_headers' => $securityHeaders,
+            'screenshot_url' => $screenshotUrl,
             'technologies' => $technologies,
         ]);
 
@@ -284,12 +297,13 @@ class AnalyzerController extends Controller
             'security_vendors' => $security_vendors,
             'security_details' => $security_details,
             'security_headers_data' => $security_headers_data,
-            'security_headers_score' => $security_headers_score,
-            'security_headers_items' => $security_headers_items,
-            'security_headers_recs' => $security_headers_recs,
-            'performance_reason' => $performance_reason,
-            'security_reason' => $security_reason
-        ];
+              'security_headers_score' => $security_headers_score,
+              'security_headers_items' => $security_headers_items,
+              'security_headers_recs' => $security_headers_recs,
+              'screenshot_url' => $data['screenshot_url'] ?? null,
+              'performance_reason' => $performance_reason,
+              'security_reason' => $security_reason
+          ];
     }
 
     /**

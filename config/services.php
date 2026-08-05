@@ -39,4 +39,28 @@ return [
         'key' => env('VIRUSTOTAL_API_KEY'),
     ],
 
+    'browsershot' => [
+        'enabled' => env('BROWSERSHOT_ENABLED', true),
+        'timeout' => (int) env('BROWSERSHOT_TIMEOUT', 30),
+        'node_path' => env('BROWSERSHOT_NODE_PATH'),
+        'npm_path' => env('BROWSERSHOT_NPM_PATH'),
+        'chrome_path' => env('BROWSERSHOT_CHROME_PATH'),
+    ],
+
+    'screenshots' => [
+        'provider' => env('SCREENSHOT_PROVIDER', 'browsershot'),
+        'external_templates' => array_values(array_filter(array_map(
+            'trim',
+            explode(
+                ',',
+                env(
+                    'SCREENSHOT_EXTERNAL_TEMPLATES',
+                    'https://s.wordpress.com/mshots/v1/{url}?w=1366'
+                )
+            )
+        ))),
+        'external_timeout' => (int) env('SCREENSHOT_EXTERNAL_TIMEOUT', 15),
+        'verify_ssl' => env('SCREENSHOT_VERIFY_SSL', false),
+    ],
+
 ];

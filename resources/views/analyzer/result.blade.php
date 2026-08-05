@@ -237,9 +237,18 @@
         .vt-detail-table td { padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
         [data-theme="dark"] .vt-detail-table th { background: rgba(255,255,255,0.01); }
 
+        /* Screenshot Section */
+        .vt-shot-wrap { padding: 15px; }
+        .vt-shot-wrap a { display: block; text-decoration: none; }
+        .vt-shot-img { width: 100%; border: 1px solid var(--border-color); border-radius: 8px; display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+
+        .vt-page-stats-card.vt-shot-card {
+            width: fit-content;
+            max-width: 100%;
+        }
+
         /* Security Headers Section */
-        .vt-sh-container { margin-bottom: 30px; }
-        .vt-sh-score-wrap { display: flex; align-items: center; gap: 30px; padding: 25px; flex-wrap: wrap; }
+        .vt-sh-container { margin-bottom: 30px; }        .vt-sh-score-wrap { display: flex; align-items: center; gap: 30px; padding: 25px; flex-wrap: wrap; }
         .vt-sh-score { width: 130px; }
         .vt-sh-score-side { display: flex; flex-direction: column; gap: 4px; }
         .vt-sh-grade { font-family: 'Outfit', sans-serif; font-size: 48px; font-weight: 800; line-height: 1; }
@@ -651,6 +660,22 @@
                 data = JSON.parse(rawJson);
                 if(data && data.pagespeed && data.pagespeed.lighthouseResult) {
                     document.getElementById('app-content').style.display = 'block';
+
+                    // Screenshot
+                    if (data.screenshot_url) {
+                        const shotWrap = document.getElementById('vt-shot-wrap');
+                        const shotImg = document.getElementById('vt-shot-img');
+                        const shotLink = document.getElementById('vt-shot-link');
+                        shotImg.src = '{{ url('screenshot') }}/' + data.screenshot_url;
+                        shotLink.href = shotImg.src;
+                        shotImg.style.display = 'block';
+                        shotWrap.style.display = 'block';
+                    } else {
+                        const shotWrap = document.getElementById('vt-shot-wrap');
+                        const shotEmpty = document.getElementById('vt-shot-empty');
+                        shotEmpty.style.display = 'flex';
+                        shotWrap.style.display = 'block';
+                    }
                     initDashboard(data);
                 } else {
                     let errMsg = "Data dari Google Lighthouse (PageSpeed API) kosong atau gagal diakses. Situs target mungkin menolak pemindaian atau terlalu lambat.";
