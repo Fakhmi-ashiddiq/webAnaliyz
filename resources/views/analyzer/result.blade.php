@@ -237,6 +237,38 @@
         .vt-detail-table td { padding: 12px 20px; border-bottom: 1px solid var(--border-color); }
         [data-theme="dark"] .vt-detail-table th { background: rgba(255,255,255,0.01); }
 
+        /* Security Headers Section */
+        .vt-sh-container { margin-bottom: 30px; }
+        .vt-sh-score-wrap { display: flex; align-items: center; gap: 30px; padding: 25px; flex-wrap: wrap; }
+        .vt-sh-score { width: 130px; }
+        .vt-sh-score-side { display: flex; flex-direction: column; gap: 4px; }
+        .vt-sh-grade { font-family: 'Outfit', sans-serif; font-size: 48px; font-weight: 800; line-height: 1; }
+        .vt-sh-grade-desc { font-size: 13px; color: var(--text-muted); }
+        .vt-sh-final-url { font-size: 12px; color: var(--text-muted); word-break: break-all; margin-top: 6px; }
+        .vt-sh-loading { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+        .vt-sh-items { padding: 10px 0; }
+        .sh-item { padding: 16px 25px; border-bottom: 1px solid var(--border-color); }
+        .sh-item:last-child { border-bottom: none; }
+        .sh-item-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+        .sh-item-name { font-weight: 600; font-size: 13px; color: var(--text-main); }
+        .sh-item-badge { font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 20px; white-space: nowrap; }
+        .sh-badge-good { background: rgba(69, 183, 139, 0.15); color: #45b78b; border: 1px solid rgba(69, 183, 139, 0.3); }
+        .sh-badge-partial { background: rgba(241, 196, 15, 0.15); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.35); }
+        .sh-badge-missing { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); }
+        .sh-item-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5dade2; word-break: break-all; margin-top: 8px; background: rgba(93, 173, 226, 0.08); padding: 6px 10px; border-radius: 4px; }
+        .sh-item-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+
+        .vt-sh-rec { padding: 10px 0; }
+        .sh-rec-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 25px; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-main); line-height: 1.5; }
+        .sh-rec-item:last-child { border-bottom: none; }
+        .sh-rec-icon { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; color: #e67e22; }
+        .sh-rec-ok { padding: 20px; text-align: center; color: #45b78b; font-weight: 600; font-size: 13px; }
+
+        .vt-sh-table-wrap { overflow-x: auto; }
+        .sh-h-name { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #5dade2; word-break: break-all; }
+        .sh-h-val { font-family: 'JetBrains Mono', monospace; word-break: break-all; color: var(--text-main); }
+
         /* Scores Section */
         .scores-section {
             display: flex;
@@ -1170,6 +1202,106 @@
                     tocList.innerHTML = tocHtml;
                     detContent.innerHTML = detHtml;
                 }
+            }
+
+            // SECURITY HEADERS TAB LOGIC
+            const shData = data.security_headers || null;
+            if(shData) {
+                const esc = (unsafe) => (unsafe || '').toString()
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+
+                // Score circle
+                const shScore = Number(shData.score) || 0;
+                const shCircle = document.getElementById('sh-score-circle');
+                const shText = document.getElementById('sh-score-text');
+                if(shCircle && shText) {
+                    shText.textContent = shScore;
+                    if(shScore >= 80) shCircle.style.stroke = '#45b78b';
+                    else if(shScore >= 50) shCircle.style.stroke = '#f1c40f';
+                    else shCircle.style.stroke = '#e74c3c';
+                    setTimeout(() => { shCircle.style.strokeDasharray = `${shScore}, 100`; }, 300);
+                }
+
+                // Grade
+                const shGrade = document.getElementById('sh-grade');
+                const shGradeDesc = document.getElementById('sh-grade-desc');
+                if(shGrade && shGradeDesc) {
+                    let grade = 'E', color = '#e74c3c', desc = 'Kritis';
+                    if(shScore >= 90) { grade = 'A'; color = '#45b78b'; desc = 'Sangat Baik'; }
+                    else if(shScore >= 70) { grade = 'B'; color = '#45b78b'; desc = 'Baik'; }
+                    else if(shScore >= 50) { grade = 'C'; color = '#f1c40f'; desc = 'Cukup'; }
+                    else if(shScore >= 30) { grade = 'D'; color = '#e67e22'; desc = 'Kurang'; }
+                    shGrade.textContent = grade;
+                    shGrade.style.color = color;
+                    shGradeDesc.textContent = desc + ' - Pengamanan header website';
+                }
+
+                // Final URL
+                const shFinalUrl = document.getElementById('sh-final-url');
+                if(shFinalUrl) shFinalUrl.textContent = 'Analisis dari: ' + (shData.final_url || '-');
+
+                // Per-header items
+                const shItems = document.getElementById('sh-items');
+                if(shItems) {
+                    const statusMeta = {
+                        good:   { label: 'Baik', cls: 'sh-badge-good' },
+                        partial:{ label: 'Sebagian', cls: 'sh-badge-partial' },
+                        missing:{ label: 'Tidak ada', cls: 'sh-badge-missing' }
+                    };
+                    let itemsHtml = '';
+                    Object.values(shData.items || {}).forEach(item => {
+                        const meta = statusMeta[item.status] || statusMeta.missing;
+                        itemsHtml += `
+                        <div class="sh-item">
+                            <div class="sh-item-top">
+                                <span class="sh-item-name">${esc(item.label)}</span>
+                                <span class="sh-item-badge ${meta.cls}">${meta.label} (${item.points}/${item.max})</span>
+                            </div>
+                            <div class="sh-item-value">${esc(item.value)}</div>
+                            <div class="sh-item-note">${esc(item.note)}</div>
+                        </div>`;
+                    });
+                    shItems.innerHTML = itemsHtml || '<div class="vt-sh-loading">Data security headers tidak tersedia.</div>';
+                }
+
+                // Recommendations
+                const shRec = document.getElementById('sh-recommendations');
+                if(shRec) {
+                    if(shData.recommendations && shData.recommendations.length) {
+                        let recHtml = '';
+                        shData.recommendations.forEach(r => {
+                            recHtml += `
+                            <div class="sh-rec-item">
+                                <svg class="sh-rec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <span>${esc(r)}</span>
+                            </div>`;
+                        });
+                        shRec.innerHTML = recHtml;
+                    } else {
+                        shRec.innerHTML = '<div class="sh-rec-ok">Semua security header utama sudah terpasang dengan baik.</div>';
+                    }
+                }
+
+                // Raw headers table
+                const shBody = document.getElementById('sh-headers-body');
+                if(shBody) {
+                    let hHtml = '';
+                    Object.entries(shData.headers || {}).forEach(([k, v]) => {
+                        hHtml += `<tr><td class="sh-h-name">${esc(k)}</td><td class="sh-h-val">${esc(v)}</td></tr>`;
+                    });
+                    shBody.innerHTML = hHtml || '<tr><td colspan="2" style="text-align:center;color:var(--text-muted);">Header tidak tersedia</td></tr>';
+                }
+            } else {
+                const shItems = document.getElementById('sh-items');
+                const shRec = document.getElementById('sh-recommendations');
+                const shBody = document.getElementById('sh-headers-body');
+                const shGradeDesc = document.getElementById('sh-grade-desc');
+                if(shGradeDesc) shGradeDesc.textContent = 'Data tidak tersedia';
+                if(shItems) shItems.innerHTML = '<div class="vt-sh-loading">Data security headers tidak tersedia untuk laporan ini.</div>';
+                if(shRec) shRec.innerHTML = '<div class="vt-sh-loading">Data security headers tidak tersedia untuk laporan ini.</div>';
+                if(shBody) shBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--text-muted);">Header tidak tersedia</td></tr>';
             }
 
             // Header Strategy Badge

@@ -197,6 +197,74 @@
         *Catatan: Jika ada nilai berupa "N/A" atau "Data tidak tersedia", ini berarti alat tidak bisa mengekstrak data dari target karena diblokir oleh target atau koneksi target terlalu lambat (timeout).
     </div>
 
+    <!-- Security Headers -->
+    <div class="section-title">Analisis Security Headers</div>
+    @if($security_headers_score !== null)
+        @php
+            $shScore = $security_headers_score;
+            $shColor = $shScore >= 80 ? '#27ae60' : ($shScore >= 50 ? '#f39c12' : '#c0392b');
+            $shGrade = $shScore >= 90 ? 'A' : ($shScore >= 70 ? 'B' : ($shScore >= 50 ? 'C' : ($shScore >= 30 ? 'D' : 'E')));
+        @endphp
+        <div class="row">
+            <div class="col-half">
+                <div class="grade-card">
+                    <div class="grade-card-title">Skor Security Headers</div>
+                    <div class="grade-box">
+                        <div class="grade-score" style="color: {{ $shColor }};">
+                            {{ $shScore }} <span style="font-size: 18px; color: #7f8c8d;">/ 100</span>
+                            <span style="font-size: 24px; margin-left: 5px;">(Grade {{ $shGrade }})</span>
+                        </div>
+                    </div>
+                    <div class="grade-reason" style="border-left-color: {{ $shColor }};">
+                        Analisis header keamanan (HTTPS, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) terhadap respons server.
+                    </div>
+                </div>
+            </div>
+            <div class="spacer"></div>
+            <div class="col-half">
+                <table>
+                    <tr>
+                        <th width="55%">Header</th>
+                        <th width="25%">Skor</th>
+                        <th width="20%">Status</th>
+                    </tr>
+                    @foreach($security_headers_items as $shItem)
+                        <tr>
+                            <td><strong>{{ $shItem['label'] ?? '-' }}</strong></td>
+                            <td>{{ $shItem['points'] ?? 0 }}/{{ $shItem['max'] ?? 0 }}</td>
+                            <td>
+                                @if(($shItem['status'] ?? '') === 'good')
+                                    <span class="text-success">Baik</span>
+                                @elseif(($shItem['status'] ?? '') === 'partial')
+                                    <span class="text-warning">Sebagian</span>
+                                @else
+                                    <span class="text-danger">Tidak ada</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+        </div>
+
+        @if(!empty($security_headers_recs))
+            <p style="margin: 5px 0 8px 0; font-size: 10px;"><strong>Rekomendasi Security Headers:</strong></p>
+            @foreach($security_headers_recs as $shRec)
+                <div class="rec-item">
+                    <div class="rec-desc">{{ $shRec }}</div>
+                </div>
+            @endforeach
+        @else
+            <div style="background: #eafaf1; border: 1px solid #d5f5e3; padding: 10px; border-radius: 4px; color: #1e8449; font-weight: bold; font-size: 10px;">
+                Semua security header utama sudah terpasang dengan baik.
+            </div>
+        @endif
+    @else
+        <div style="background: #fef9e7; border: 1px solid #fdebd0; padding: 10px; border-radius: 4px; color: #7d6608; font-size: 10px;">
+            Data security headers tidak tersedia untuk laporan ini.
+        </div>
+    @endif
+
     <!-- Rekomendasi -->
     <div class="section-title">Top Issues & Rekomendasi Perbaikan</div>
     @if(empty($recommendations))

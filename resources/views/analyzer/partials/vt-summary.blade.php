@@ -3,6 +3,7 @@
     <div class="vt-inner-tabs">
         <button class="vt-inner-tab active" data-target="vt-tab-summary">SUMMARY</button>
         <button class="vt-inner-tab" data-target="vt-tab-detection">DETECTION</button>
+        <button class="vt-inner-tab" data-target="vt-tab-security-headers">SECURITY HEADERS</button>
         <button class="vt-inner-tab" data-target="vt-tab-details">DETAILS</button>
     </div>
 
@@ -182,6 +183,11 @@
         <!-- Details Tab -->
         <div id="vt-tab-details" class="vt-tab-pane">
             @include('analyzer.partials.vt-details')
+        </div>
+
+        <!-- Security Headers Tab -->
+        <div id="vt-tab-security-headers" class="vt-tab-pane">
+            @include('analyzer.partials.vt-security-headers')
         </div>
     </div>
 </div>

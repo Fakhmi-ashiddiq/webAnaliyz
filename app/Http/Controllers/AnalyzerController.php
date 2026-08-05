@@ -81,6 +81,16 @@ class AnalyzerController extends Controller
             $httpInfo = null;
         }
 
+        $securityHeaders = [];
+        try {
+            $securityHeaders = $analyzerService->analyzeSecurityHeaders(
+                $httpInfo['headers'] ?? [],
+                $httpInfo['final_url'] ?? $report->url
+            );
+        } catch (\Exception $e) {
+            $securityHeaders = [];
+        }
+
         $technologies = [];
         try {
             $technologies = $analyzerService->detectTechnologies($report->url);
@@ -98,6 +108,7 @@ class AnalyzerController extends Controller
             'pagespeed' => $pageSpeedData,
             'virustotal' => $virusTotalData['raw_data'] ?? null,
             'http_info' => $httpInfo,
+            'security_headers' => $securityHeaders,
             'technologies' => $technologies,
         ]);
 
@@ -241,6 +252,12 @@ class AnalyzerController extends Controller
         if ($security_details['status_code'] === 'N/A' && isset($httpInfo['status_code'])) {
             $security_details['status_code'] = $httpInfo['status_code'];
         }
+
+        // --- Security Headers (HSTS, CSP, XFO, XCTO, Referrer-Policy) ---
+        $security_headers_data = $data['security_headers'] ?? null;
+        $security_headers_score = $security_headers_data['score'] ?? null;
+        $security_headers_items = $security_headers_data['items'] ?? [];
+        $security_headers_recs = $security_headers_data['recommendations'] ?? [];
         
         // --- Generate Reasons ---
         $performance_reason = '';
@@ -266,6 +283,10 @@ class AnalyzerController extends Controller
             'recommendations' => $recommendations,
             'security_vendors' => $security_vendors,
             'security_details' => $security_details,
+            'security_headers_data' => $security_headers_data,
+            'security_headers_score' => $security_headers_score,
+            'security_headers_items' => $security_headers_items,
+            'security_headers_recs' => $security_headers_recs,
             'performance_reason' => $performance_reason,
             'security_reason' => $security_reason
         ];
