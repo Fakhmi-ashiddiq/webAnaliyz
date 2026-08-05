@@ -331,6 +331,109 @@
             border-color: rgba(239, 68, 68, 0.4);
             color: #fca5a5;
         }
+
+        .history-card {
+            margin-top: 30px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .history-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            color: #e2e8f0;
+        }
+
+        .history-count {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            text-decoration: none;
+            transition: all 0.25s ease;
+        }
+
+        .history-item:hover {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+            transform: translateX(4px);
+        }
+
+        .history-item-main {
+            min-width: 0;
+        }
+
+        .history-url {
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-meta {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            margin-top: 4px;
+        }
+
+        .history-scores {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .score-pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .score-good {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .score-mid {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .score-bad {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -394,6 +497,34 @@
                 </button>
             </form>
         </div>
+
+        @if($reports->isNotEmpty())
+        <div class="analyzer-card history-card">
+            <div class="history-header">
+                <h2 class="history-title">Riwayat Analisis</h2>
+                <span class="history-count">{{ $reports->count() }} laporan</span>
+            </div>
+
+            <div class="history-list">
+                @foreach($reports as $report)
+                <a href="{{ route('analyzer.result', $report->id) }}" class="history-item">
+                    <div class="history-item-main">
+                        <div class="history-url" title="{{ $report->url }}">{{ $report->url }}</div>
+                        <div class="history-meta">{{ $report->created_at->format('d M Y, H:i') }}</div>
+                    </div>
+                    <div class="history-scores">
+                        <div class="score-pill {{ $report->performance_score >= 90 ? 'score-good' : ($report->performance_score >= 50 ? 'score-mid' : 'score-bad') }}">
+                            Performance {{ $report->performance_score ?? 'N/A' }}
+                        </div>
+                        <div class="score-pill {{ $report->malicious_votes > 0 ? 'score-bad' : 'score-good' }}">
+                            {{ $report->malicious_votes > 0 ? 'Bahaya' : 'Aman' }}
+                        </div>
+                    </div>
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 
     <!-- Fullscreen Loading Overlay -->
